@@ -1,103 +1,101 @@
-const KEY = "firmas_maestro_surquillo_v1";
+const SUPABASE_URL = "https://hpmrihkklttdwpafimgs.supabase.co";
+const SUPABASE_KEY = "sb_publishable_t8kJ3wlEJNCviX1woDkNPg_mX7QcQ8A";
+const TABLE = "firmas-maestro-surquillo";
 
-function data(){
-  return JSON.parse(localStorage.getItem(KEY) || "[]");
+async function supabaseRequest(method, body = null, query = "") {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}${query}`, {
+    method,
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      "Content-Type": "application/json",
+      Prefer: "return=representation"
+    },
+    body: body ? JSON.stringify(body) : null
+  });
+
+  if (!res.ok) throw new Error(await res.text());
+  return await res.json();
 }
-function save(items){
-  localStorage.setItem(KEY, JSON.stringify(items));
-}
-function dniValido(dni){
+
+function dniValido(dni) {
   return /^[0-9]{8}$/.test(dni);
 }
 
 const form = document.getElementById("firmaForm");
-if(form){
-  form.addEventListener("submit", (e)=>{
+if (form) {
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
+
     const dni = document.getElementById("dni").value.trim();
     const nombre = document.getElementById("nombre").value.trim();
     const mensaje = document.getElementById("mensaje").value.trim();
+    const estado = document.getElementById("estado");
 
-    if(!dniValido(dni)){
-      document.getElementById("estado").textContent = "El DNI debe tener 8 números.";
+    if (!dniValido(dni)) {
+      estado.textContent = "Ingresa un DNI válido de 8 dígitos.";
       return;
     }
 
-    const items = data();
-    if(items.some(x => x.dni === dni)){
-      document.getElementById("estado").textContent = "Este DNI ya dejó una firma.";
-      return;
+    try {
+      await supabaseRequest("POST", {
+        dni,
+        nombre,
+        mensaje,
+        estado: "pendiente"
+      });
+
+      estado.textContent = "Firma enviada. Espera aprobación.";
+      form.reset();
+    } catch (error) {
+      estado.textContent = "Error al enviar la firma.";
+      console.error(error);
     }
-
-    items.push({
-      id: Date.now(),
-      dni, nombre, mensaje,
-      estado: "pendiente",
-      fecha: new Date().toLocaleString()
-    });
-    save(items);
-    form.reset();
-    document.getElementById("estado").textContent = "Firma enviada. Queda pendiente de aprobación.";
-    renderFirmas();
-  });
-  renderFirmas();
-}
-
-function renderFirmas(){
-  const cont = document.getElementById("listaFirmas");
-  if(!cont) return;
-  const aprobadas = data().filter(x => x.estado === "aprobada");
-  cont.innerHTML = aprobadas.length ? "" : "<p>Aún no hay firmas aprobadas.</p>";
-  aprobadas.forEach(x=>{
-    cont.innerHTML += `<div class="card"><b>${escapeHtml(x.nombre)}</b><p>${escapeHtml(x.mensaje)}</p><small>${x.fecha}</small></div>`;
   });
 }
 
-function entrarAdmin(){
-  const clave = document.getElementById("clave").value;
-  if(clave !== "maestro22"){ alert("Clave incorrecta"); return; }
-  document.getElementById("login").hidden = true;
-  document.getElementById("panelAdmin").hidden = false;
-  renderAdmin();
+async function cargarFirmas() {
+  const contenedor = document.getElementById("firmas");
+  if (!contenedor) return;
+
+  const firmas = await supabaseRequest(
+    "GET",
+    null,
+    "?select=*&estado=eq.aprobado&order=created_at.desc"
+  );
+
+  contenedor.innerHTML = firmas.length
+    ? firmas.map(f => `<div class="firma"><strong>${f.nombre}</strong><p>${f.mensaje}</p></div>`).join("")
+    : "<p>Aún no hay firmas aprobadas.</p>";
 }
 
-function renderAdmin(){
-  const items = data();
+async function cargarAdmin() {
   const pendientes = document.getElementById("pendientes");
   const aprobadas = document.getElementById("aprobadas");
-  pendientes.innerHTML = "";
-  aprobadas.innerHTML = "";
+  if (!pendientes || !aprobadas) return;
 
-  items.filter(x=>x.estado==="pendiente").forEach(x=>{
-    pendientes.innerHTML += cardAdmin(x, true);
-  });
-  items.filter(x=>x.estado==="aprobada").forEach(x=>{
-    aprobadas.innerHTML += cardAdmin(x, false);
-  });
+  const firmas = await supabaseRequest("GET", null, "?select=*&order=created_at.desc");
 
-  if(!pendientes.innerHTML) pendientes.innerHTML = "<p>No hay firmas pendientes.</p>";
-  if(!aprobadas.innerHTML) aprobadas.innerHTML = "<p>No hay firmas aprobadas.</p>";
-}
-
-function cardAdmin(x, pendiente){
-  return `<div class="card">
-    <b>${escapeHtml(x.nombre)}</b> <small>DNI: ${escapeHtml(x.dni)} | ${x.fecha}</small>
-    <p>${escapeHtml(x.mensaje)}</p>
-    <div class="acciones">
-      ${pendiente ? `<button onclick="aprobar(${x.id})">Aprobar</button>` : ""}
-      <button onclick="eliminar(${x.id})">Eliminar</button>
+  pendientes.innerHTML = firmas.filter(f => f.estado === "pendiente").map(f => `
+    <div class="firma">
+      <strong>${f.nombre}</strong>
+      <p>${f.mensaje}</p>
+      <button onclick="aprobarFirma(${f.id})">Aprobar</button>
     </div>
-  </div>`;
+  `).join("") || "<p>No hay firmas pendientes.</p>";
+
+  aprobadas.innerHTML = firmas.filter(f => f.estado === "aprobado").map(f => `
+    <div class="firma">
+      <strong>${f.nombre}</strong>
+      <p>${f.mensaje}</p>
+    </div>
+  `).join("") || "<p>No hay firmas aprobadas.</p>";
 }
 
-function aprobar(id){
-  const items = data().map(x => x.id === id ? {...x, estado:"aprobada"} : x);
-  save(items); renderAdmin();
-}
-function eliminar(id){
-  save(data().filter(x => x.id !== id)); renderAdmin();
+async function aprobarFirma(id) {
+  await supabaseRequest("PATCH", { estado: "aprobado" }, `?id=eq.${id}`);
+  cargarAdmin();
 }
 
-function escapeHtml(text){
-  return text.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
-}
+cargarFirmas();
+cargarAdmin();
