@@ -13,7 +13,6 @@ async function supabaseRequest(method, body = null, query = "") {
     },
     body: body ? JSON.stringify(body) : null
   });
-
   if (!res.ok) throw new Error(await res.text());
   return await res.json();
 }
@@ -33,12 +32,12 @@ if (form) {
     const mensaje = document.getElementById("mensaje").value.trim();
     const estado = document.getElementById("estado");
 
-    if (!dniValido(dni)) {
-      estado.textContent = "Ingresa un DNI válido de 8 dígitos.";
-      return;
-    }
-
     try {
+      if (!dniValido(dni)) {
+        estado.textContent = "Ingresa un DNI válido de 8 dígitos.";
+        return;
+      }
+
       await supabaseRequest("POST", {
         dni,
         nombre,
@@ -59,15 +58,25 @@ async function cargarFirmas() {
   const contenedor = document.getElementById("firmas");
   if (!contenedor) return;
 
-  const firmas = await supabaseRequest(
-    "GET",
-    null,
-    "?select=*&estado=eq.aprobado&order=created_at.desc"
-  );
+  try {
+    const firmas = await supabaseRequest(
+      "GET",
+      null,
+      "?select=*&estado=eq.aprobado&order=created_at.desc"
+    );
 
-  contenedor.innerHTML = firmas.length
-    ? firmas.map(f => `<div class="firma"><strong>${f.nombre}</strong><p>${f.mensaje}</p></div>`).join("")
-    : "<p>Aún no hay firmas aprobadas.</p>";
+    contenedor.innerHTML = firmas.length
+      ? firmas.map(f => `
+          <div class="firma">
+            <strong>${f.nombre}</strong>
+            <p>${f.mensaje}</p>
+          </div>
+        `).join("")
+      : "<p>Aún no hay firmas aprobadas.</p>";
+  } catch (error) {
+    contenedor.innerHTML = "<p>Error al cargar firmas aprobadas.</p>";
+    console.error(error);
+  }
 }
 
 async function cargarAdmin() {
@@ -111,5 +120,7 @@ function entrarAdmin() {
   cargarAdmin();
 }
 
-cargarFirmas();
-cargarAdmin();
+document.addEventListener("DOMContentLoaded", () => {
+  cargarFirmas();
+  cargarAdmin();
+});
