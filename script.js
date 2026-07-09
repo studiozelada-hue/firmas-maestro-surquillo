@@ -23,6 +23,7 @@ function dniValido(dni) {
 }
 
 const form = document.getElementById("firmaForm");
+
 if (form) {
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -96,6 +97,7 @@ async function aprobarFirma(id) {
   await supabaseRequest("PATCH", { estado: "aprobado" }, `?id=eq.${id}`);
   cargarAdmin();
 }
+
 function entrarAdmin() {
   const clave = document.getElementById("clave").value.trim();
 
@@ -107,17 +109,7 @@ function entrarAdmin() {
   document.getElementById("login").hidden = true;
   document.getElementById("panelAdmin").hidden = false;
   cargarAdmin();
-}function entrarAdmin() {
-  const clave = document.getElementById("clave").value.trim();
-
-  if (clave !== "maestro22") {
-    alert("Clave incorrecta");
-    return;
-  }
-
-  document.getElementById("login").hidden = true;
-  document.getElementById("panelAdmin").hidden = false;
-  cargarAdmin();
 }
+
 cargarFirmas();
 cargarAdmin();
