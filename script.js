@@ -55,7 +55,7 @@ if (form) {
 }
 
 async function cargarFirmas() {
-  const contenedor = document.getElementById("listafirmas");
+  const contenedor = document.getElementById("listaFirmas");
   if (!contenedor) return;
 
   try {
