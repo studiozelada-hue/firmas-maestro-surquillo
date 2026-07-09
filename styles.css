@@ -1,0 +1,17 @@
+*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#070707;color:#fff}
+.wrap{max-width:1150px;margin:auto;padding:24px}
+.hero{display:grid;grid-template-columns:1fr 420px;gap:28px;align-items:center}
+.hero img{width:100%;border-radius:18px;box-shadow:0 0 40px rgba(255,190,60,.25)}
+.panel,.firmas,.admin section{background:#111;border:1px solid #333;border-radius:18px;padding:24px;box-shadow:0 0 25px rgba(0,0,0,.45)}
+h1{font-size:42px;line-height:1.05;margin:0 0 12px;color:#f5c04a}
+h2{color:#f5c04a}
+label{display:block;margin-top:14px;font-weight:bold}
+input,textarea{width:100%;padding:13px;margin-top:6px;border-radius:10px;border:1px solid #444;background:#fff;color:#111;font-size:16px}
+button{margin-top:16px;padding:13px 18px;border:0;border-radius:10px;background:#d6a22f;color:#111;font-weight:bold;cursor:pointer}
+button:hover{filter:brightness(1.1)}
+.estado{color:#8ff0a4;font-weight:bold}
+.firmas{margin-top:28px}
+.card{background:#1a1a1a;border:1px solid #333;border-radius:14px;padding:16px;margin:12px 0}
+.card small{color:#bbb}
+.acciones button{margin-right:8px}
+@media(max-width:850px){.hero{grid-template-columns:1fr}h1{font-size:34px}}

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin - Firmas</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="wrap admin">
+    <h1>Panel de aprobación</h1>
+    <p>Clave demo: <b>maestro22</b></p>
+
+    <div id="login">
+      <input id="clave" type="password" placeholder="Clave de administrador">
+      <button onclick="entrarAdmin()">Entrar</button>
+    </div>
+
+    <section id="panelAdmin" hidden>
+      <h2>Firmas pendientes</h2>
+      <div id="pendientes"></div>
+
+      <h2>Firmas aprobadas</h2>
+      <div id="aprobadas"></div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

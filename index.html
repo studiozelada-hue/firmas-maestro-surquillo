@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Firmas Maestro Surquillo</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="wrap">
+    <section class="hero">
+      <img src="maestro-surquillo.png" alt="Mandil Maestro Surquillo en museo">
+      <div class="panel">
+        <h1>Libro de firmas<br>Maestro Surquillo</h1>
+        <p>Ingresa con tu DNI y deja tu firma. La firma aparecerá solo después de aprobación.</p>
+
+        <form id="firmaForm">
+          <label>DNI</label>
+          <input id="dni" inputmode="numeric" maxlength="8" placeholder="8 dígitos" required>
+
+          <label>Nombre</label>
+          <input id="nombre" placeholder="Tu nombre" required>
+
+          <label>Mensaje / firma</label>
+          <textarea id="mensaje" rows="4" placeholder="Escribe tu dedicatoria..." required></textarea>
+
+          <button type="submit">Enviar para aprobación</button>
+        </form>
+
+        <p id="estado" class="estado"></p>
+      </div>
+    </section>
+
+    <section class="firmas">
+      <h2>Firmas aprobadas</h2>
+      <div id="listaFirmas"></div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
