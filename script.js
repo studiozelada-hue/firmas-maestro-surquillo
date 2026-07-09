@@ -98,7 +98,10 @@ async function cargarAdmin() {
     <div class="firma">
       <strong>${f.nombre}</strong>
       <p>${f.mensaje}</p>
-    </div>
+      
+  <button onclick="editarFirma(${f.id}, '${f.mensaje}')">Editar</button>
+  <button onclick="eliminarFirma(${f.id})">Eliminar</button>
+</div>
   `).join("") || "<p>No hay firmas aprobadas.</p>";
 }
 
@@ -124,3 +127,23 @@ document.addEventListener("DOMContentLoaded", () => {
   cargarFirmas();
   cargarAdmin();
 });
+async function eliminarFirma(id) {
+  if (!confirm("¿Eliminar esta firma?")) return;
+
+  await supabaseRequest("DELETE", null, `?id=eq.${id}`);
+  cargarFirmas();
+  cargarAdmin();
+}
+
+async function editarFirma(id, mensajeActual) {
+  const nuevo = prompt("Editar mensaje:", mensajeActual);
+  if (!nuevo) return;
+
+  await supabaseRequest("PATCH",
+    { mensaje: nuevo },
+    `?id=eq.${id}`
+  );
+
+  cargarFirmas();
+  cargarAdmin();
+}
