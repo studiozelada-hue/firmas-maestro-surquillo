@@ -1,3 +1,4 @@
+
 const SUPABASE_URL = "https://hpmrihkklttdwpafimgs.supabase.co";
 const SUPABASE_KEY = "sb_publishable_t8kJ3wlEJNCviX1woDkNPg_mX7QcQ8A";
 const TABLE = "firmas-maestro-surquillo";
@@ -67,13 +68,10 @@ async function cargarFirmas() {
 
     contenedor.innerHTML = firmas.length
       ? firmas.map(f => `
-         <div class="firma">
-  <strong>${f.nombre}</strong>
-  <p>${f.mensaje}</p>
-  <button type="button" onclick="darLike(${f.id}, ${f.likes || 0})">
-    ❤️ Me gusta (${f.likes || 0})
-  </button>
-</div>
+          <div class="firma">
+            <strong>${f.nombre}</strong>
+            <p>${f.mensaje}</p>
+          </div>
         `).join("")
       : "<p>Aún no hay firmas aprobadas.</p>";
   } catch (error) {
@@ -149,23 +147,4 @@ async function editarFirma(id, mensajeActual) {
 
   cargarFirmas();
   cargarAdmin();
-}
-    cargarFirmas();
-    cargarAdmin();
-  }
-}
-
-async function darLike(id, likesActuales) {
-  try {
-    await supabaseRequest(
-      "PATCH",
-      { likes: (likesActuales || 0) + 1 },
-      `?id=eq.${id}`
-    );
-
-    cargarFirmas();
-  } catch (error) {
-    console.error(error);
-    alert("No se pudo registrar el Me gusta.");
-  }
 }
