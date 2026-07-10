@@ -1,4 +1,3 @@
-
 const SUPABASE_URL = "https://hpmrihkklttdwpafimgs.supabase.co";
 const SUPABASE_KEY = "sb_publishable_t8kJ3wlEJNCviX1woDkNPg_mX7QcQ8A";
 const TABLE = "firmas-maestro-surquillo";
@@ -14,7 +13,11 @@ async function supabaseRequest(method, body = null, query = "") {
     },
     body: body ? JSON.stringify(body) : null
   });
-  if (!res.ok) throw new Error(await res.text());
+
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+
   return await res.json();
 }
 
@@ -43,7 +46,8 @@ if (form) {
         dni,
         nombre,
         mensaje,
-        estado: "pendiente"
+        estado: "pendiente",
+        likes: 0
       });
 
       estado.textContent = "Firma enviada. Espera aprobación.";
@@ -53,6 +57,10 @@ if (form) {
       console.error(error);
     }
   });
+}
+
+function yaDioLike(id) {
+  return localStorage.getItem(`firma_like_${id}`) === "1";
 }
 
 async function cargarFirmas() {
@@ -67,16 +75,47 @@ async function cargarFirmas() {
     );
 
     contenedor.innerHTML = firmas.length
-      ? firmas.map(f => `
-          <div class="firma">
-            <strong>${f.nombre}</strong>
-            <p>${f.mensaje}</p>
-          </div>
-        `).join("")
+      ? firmas.map((f) => {
+          const desactivado = yaDioLike(f.id);
+          return `
+            <div class="firma">
+              <strong>${f.nombre}</strong>
+              <p>${f.mensaje}</p>
+              <button
+                type="button"
+                onclick="darLike(${f.id}, ${f.likes || 0})"
+                ${desactivado ? "disabled" : ""}
+              >
+                ${desactivado ? "❤️ Ya te gusta" : "❤️ Me gusta"} (${f.likes || 0})
+              </button>
+            </div>
+          `;
+        }).join("")
       : "<p>Aún no hay firmas aprobadas.</p>";
   } catch (error) {
     contenedor.innerHTML = "<p>Error al cargar firmas aprobadas.</p>";
     console.error(error);
+  }
+}
+
+async function darLike(id, likesActuales) {
+  if (yaDioLike(id)) {
+    alert("Ya diste Me gusta a esta firma.");
+    return;
+  }
+
+  try {
+    await supabaseRequest(
+      "PATCH",
+      { likes: Number(likesActuales || 0) + 1 },
+      `?id=eq.${id}`
+    );
+
+    localStorage.setItem(`firma_like_${id}`, "1");
+    await cargarFirmas();
+  } catch (error) {
+    console.error(error);
+    alert("No se pudo registrar el Me gusta.");
   }
 }
 
@@ -85,30 +124,66 @@ async function cargarAdmin() {
   const aprobadas = document.getElementById("aprobadas");
   if (!pendientes || !aprobadas) return;
 
-  const firmas = await supabaseRequest("GET", null, "?select=*&order=created_at.desc");
+  try {
+    const firmas = await supabaseRequest(
+      "GET",
+      null,
+      "?select=*&order=created_at.desc"
+    );
 
-  pendientes.innerHTML = firmas.filter(f => f.estado === "pendiente").map(f => `
-    <div class="firma">
-      <strong>${f.nombre}</strong>
-      <p>${f.mensaje}</p>
-      <button onclick="aprobarFirma(${f.id})">Aprobar</button>
-    </div>
-  `).join("") || "<p>No hay firmas pendientes.</p>";
+    pendientes.innerHTML =
+      firmas
+        .filter((f) => f.estado === "pendiente")
+        .map((f) => `
+          <div class="firma">
+            <strong>${f.nombre}</strong>
+            <p>${f.mensaje}</p>
+            <button type="button" onclick="aprobarFirma(${f.id})">
+              Aprobar
+            </button>
+          </div>
+        `).join("") || "<p>No hay firmas pendientes.</p>";
 
-  aprobadas.innerHTML = firmas.filter(f => f.estado === "aprobado").map(f => `
-    <div class="firma">
-      <strong>${f.nombre}</strong>
-      <p>${f.mensaje}</p>
-      
-  <button onclick="editarFirma(${f.id}, '${f.mensaje}')">Editar</button>
-  <button onclick="eliminarFirma(${f.id})">Eliminar</button>
-</div>
-  `).join("") || "<p>No hay firmas aprobadas.</p>";
+    aprobadas.innerHTML =
+      firmas
+        .filter((f) => f.estado === "aprobado")
+        .map((f) => `
+          <div class="firma">
+            <strong>${f.nombre}</strong>
+            <p>${f.mensaje}</p>
+            <p>❤️ Me gusta: ${f.likes || 0}</p>
+            <button
+              type="button"
+              onclick='editarFirma(${f.id}, ${JSON.stringify(f.mensaje)})'
+            >
+              Editar
+            </button>
+            <button type="button" onclick="eliminarFirma(${f.id})">
+              Eliminar
+            </button>
+          </div>
+        `).join("") || "<p>No hay firmas aprobadas.</p>";
+  } catch (error) {
+    pendientes.innerHTML = "<p>Error al cargar firmas pendientes.</p>";
+    aprobadas.innerHTML = "<p>Error al cargar firmas aprobadas.</p>";
+    console.error(error);
+  }
 }
 
 async function aprobarFirma(id) {
-  await supabaseRequest("PATCH", { estado: "aprobado" }, `?id=eq.${id}`);
-  cargarAdmin();
+  try {
+    await supabaseRequest(
+      "PATCH",
+      { estado: "aprobado" },
+      `?id=eq.${id}`
+    );
+
+    await cargarAdmin();
+    await cargarFirmas();
+  } catch (error) {
+    console.error(error);
+    alert("No se pudo aprobar la firma.");
+  }
 }
 
 function entrarAdmin() {
@@ -124,27 +199,44 @@ function entrarAdmin() {
   cargarAdmin();
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  cargarFirmas();
-  cargarAdmin();
-});
 async function eliminarFirma(id) {
   if (!confirm("¿Eliminar esta firma?")) return;
 
-  await supabaseRequest("DELETE", null, `?id=eq.${id}`);
-  cargarFirmas();
-  cargarAdmin();
+  try {
+    await supabaseRequest("DELETE", null, `?id=eq.${id}`);
+    await cargarFirmas();
+    await cargarAdmin();
+  } catch (error) {
+    console.error(error);
+    alert("No se pudo eliminar la firma.");
+  }
 }
 
 async function editarFirma(id, mensajeActual) {
   const nuevo = prompt("Editar mensaje:", mensajeActual);
-  if (!nuevo) return;
+  if (nuevo === null) return;
 
-  await supabaseRequest("PATCH",
-    { mensaje: nuevo },
-    `?id=eq.${id}`
-  );
+  const mensajeLimpio = nuevo.trim();
+  if (!mensajeLimpio) {
+    alert("El mensaje no puede quedar vacío.");
+    return;
+  }
 
-  cargarFirmas();
-  cargarAdmin();
+  try {
+    await supabaseRequest(
+      "PATCH",
+      { mensaje: mensajeLimpio },
+      `?id=eq.${id}`
+    );
+
+    await cargarFirmas();
+    await cargarAdmin();
+  } catch (error) {
+    console.error(error);
+    alert("No se pudo editar la firma.");
+  }
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+  cargarFirmas();
+});
